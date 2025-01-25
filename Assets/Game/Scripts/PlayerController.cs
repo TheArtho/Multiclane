@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 public class PlayerController : NetworkBehaviour
 {
@@ -21,30 +22,31 @@ public class PlayerController : NetworkBehaviour
     public float jumpForce;
     public float jumpCooldown;
     public float airMultiplier;
-    [SerializeField]
-    private bool _readyToJump;
+    [FormerlySerializedAs("_readyToJump")] [SerializeField]
+    private bool readyToJump;
 
     [Space]
     
     [Header("Ground Check")]
     public float playerHeight;
     public LayerMask whatIsGround;
-    [SerializeField]
-    bool grounded;
+    [SerializeField] 
+    private bool grounded;
     
+    [FormerlySerializedAs("_walkSpeed")]
     [Space]
     
     [Header("Movement Multipliers")]
     
     [SerializeField]
-    private float _walkSpeed = 1;
-    [SerializeField]
-    private float _sprintMultiplier = 2f;
+    private float walkSpeed = 1;
+    [FormerlySerializedAs("_sprintMultiplier")] [SerializeField]
+    private float sprintMultiplier = 2f;
 
-    private Vector3 moveDirection;
+    private Vector3 _moveDirection;
 
-    private Rigidbody rb;
-    private RaycastHit hit;
+    private Rigidbody _rb;
+    private RaycastHit _hit;
     
     [Space]
 
@@ -52,7 +54,7 @@ public class PlayerController : NetworkBehaviour
     public Transform cameraTransform;
     
     [Space]
-    private Vector3 velocity;
+    private Vector3 _velocity;
 
     [Header("Character Visual")]
     [SerializeField] private GameObject model;
@@ -62,42 +64,40 @@ public class PlayerController : NetworkBehaviour
     [Header("Collision")]
     public float sphereCastThickness = 0.5f;
 
-    private PlayerInputActions inputActions;
-    private Vector2 moveInput;
-    private bool jumpInput;
-    private bool sprintInput;
+    private PlayerInputActions _inputActions;
+    private Vector2 _moveInput;
+    private bool _jumpInput;
+    private bool _sprintInput;
+
+    private RagdollController _ragdollController;
 
     private void Awake()
     {
-        inputActions = new PlayerInputActions();
+        _inputActions = new PlayerInputActions();
 
-        // Bind inputs
-        inputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-        inputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
-
-        inputActions.Player.Jump.performed += ctx => jumpInput = true;
-        inputActions.Player.Jump.canceled += ctx => jumpInput = false;
-
-        inputActions.Player.Sprint.performed += ctx => sprintInput = true;
-        inputActions.Player.Sprint.canceled += ctx => sprintInput = false;
+        //InitializeInputs();
     }
 
     private void OnEnable()
     {
-        inputActions.Enable();
+        _inputActions.Enable();
     }
 
     private void OnDisable()
     {
-        inputActions.Disable();
+        _inputActions.Disable();
     }
 
     private void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        rb.freezeRotation = true;
+        transform.position = PlayerSpawn.Main!.transform.position;
+        
+        _rb = GetComponent<Rigidbody>();
+        _rb.freezeRotation = true;
 
-        _readyToJump = true;
+        _ragdollController = new RagdollController();
+
+        readyToJump = true;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -110,6 +110,7 @@ public class PlayerController : NetworkBehaviour
         else
         {
             model.SetActive(false);
+            InitializeInputs();
         }
     }
 
@@ -117,7 +118,7 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        grounded = RotaryHeart.Lib.PhysicsExtension.Physics.SphereCast(transform.position, sphereCastThickness, Vector3.down, out hit, playerHeight * 0.3f, ~(1 << LayerMask.NameToLayer("OnSecondScreen") | 1 << LayerMask.NameToLayer("Player") | 1 << LayerMask.NameToLayer("Ignore Raycast")), RotaryHeart.Lib.PhysicsExtension.PreviewCondition.Editor);
+        grounded = RotaryHeart.Lib.PhysicsExtension.Physics.SphereCast(transform.position, sphereCastThickness, Vector3.down, out _hit, playerHeight * 0.3f, ~(1 << LayerMask.NameToLayer("OnSecondScreen") | 1 << LayerMask.NameToLayer("Player") | 1 << LayerMask.NameToLayer("Ignore Raycast")), RotaryHeart.Lib.PhysicsExtension.PreviewCondition.Editor);
 
         HandleInputs();
         HandleMouseLook();
@@ -125,56 +126,79 @@ public class PlayerController : NetworkBehaviour
 
         // handle drag
         if (grounded)
-            rb.drag = groundDrag;
+            _rb.drag = groundDrag;
         else
-            rb.drag = 0;
+            _rb.drag = 0;
     }
 
     private void FixedUpdate()
     {
         MovePlayer();
     }
+
+    private void InitializeInputs()
+    {
+        // Bind inputs
+        _inputActions.Player.Move.performed += ctx => _moveInput = ctx.ReadValue<Vector2>();
+        _inputActions.Player.Move.canceled += ctx => _moveInput = Vector2.zero;
+
+        _inputActions.Player.Jump.performed += ctx =>
+        {
+            _jumpInput = true;
+        };
+        _inputActions.Player.Jump.canceled += ctx =>
+        {
+            _jumpInput = false;
+        };
+
+        _inputActions.Player.Sprint.performed += ctx =>
+        {
+            ToggleRagdoll();
+            _sprintInput = true;
+        };
+        _inputActions.Player.Sprint.canceled += ctx => _sprintInput = false;
+    }
     
     private void MovePlayer()
     {
         // calculate movement direction
-        moveDirection = transform.right * moveInput.x + transform.forward * moveInput.y;
+        _moveDirection = transform.right * _moveInput.x + transform.forward * _moveInput.y;
         
         if (grounded)   // On the ground
         {
-            rb.AddForce(moveDirection.normalized * (moveSpeed * 10f * (sprinting ? _walkSpeed*_sprintMultiplier : _walkSpeed)), ForceMode.Acceleration);
+            _rb.AddForce(_moveDirection.normalized * (moveSpeed * 10f * (sprinting ? walkSpeed*sprintMultiplier : walkSpeed)), ForceMode.Acceleration);
         }
         else if (!grounded) // In the air
         {
-            rb.AddForce(
-                moveDirection.normalized * (moveSpeed * 10f * airMultiplier * (sprinting ? _walkSpeed * _sprintMultiplier : _walkSpeed)), ForceMode.Acceleration);
+            _rb.AddForce(
+                _moveDirection.normalized * (moveSpeed * 10f * airMultiplier * (sprinting ? walkSpeed * sprintMultiplier : walkSpeed)), ForceMode.Acceleration);
         }
     }
     
     private void SpeedControl()
     {
-        Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        Vector3 flatVel = new Vector3(_rb.velocity.x, 0f, _rb.velocity.z);
 
         // limit velocity if needed
         if(flatVel.magnitude > moveSpeed)
         {
             Vector3 limitedVel = flatVel.normalized * moveSpeed;
-            rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
+            _rb.velocity = new Vector3(limitedVel.x, _rb.velocity.y, limitedVel.z);
         }
     }
 
     private void HandleInputs()
     {
         // Convert move input to 3D movement
-        Vector3 movement = transform.right * moveInput.x + transform.forward * moveInput.y;
+        Vector3 movement = transform.right * _moveInput.x + transform.forward * _moveInput.y;
 
         // Handle sprinting
-        sprinting = sprintInput && grounded && movement.magnitude > 0;
+        sprinting = _sprintInput && grounded && movement.magnitude > 0;
 
         // Looks for jumping
-        if (jumpInput && _readyToJump && grounded)
+        if (_jumpInput && readyToJump && grounded)
         {
-            _readyToJump = false;
+            readyToJump = false;
             
             Jump();
 
@@ -184,13 +208,13 @@ public class PlayerController : NetworkBehaviour
 
     private void Jump()
     {
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-        rb.AddForce(transform.up * jumpForce * rb.mass, ForceMode.Impulse);
+        _rb.velocity = new Vector3(_rb.velocity.x, 0f, _rb.velocity.z);
+        _rb.AddForce(transform.up * jumpForce * _rb.mass, ForceMode.Impulse);
     }
 
     private void ResetJump()
     {
-        _readyToJump = true;
+        readyToJump = true;
     }
 
     private void HandleMouseLook()
@@ -208,5 +232,10 @@ public class PlayerController : NetworkBehaviour
         float newRotationX = Mathf.Clamp(currentRotationX - mouseY, -89f, 89f);
 
         cameraTransform.localRotation = Quaternion.Euler(newRotationX, 0f, 0f);
+    }
+    
+    public void ToggleRagdoll()
+    {
+        _rb.freezeRotation = !_rb.freezeRotation;
     }
 }
