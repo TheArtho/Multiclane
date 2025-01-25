@@ -69,8 +69,6 @@ public class PlayerController : NetworkBehaviour
     private bool _jumpInput;
     private bool _sprintInput;
 
-    private RagdollController _ragdollController;
-
     private void Awake()
     {
         _inputActions = new PlayerInputActions();
@@ -94,8 +92,6 @@ public class PlayerController : NetworkBehaviour
         
         _rb = GetComponent<Rigidbody>();
         _rb.freezeRotation = true;
-
-        _ragdollController = new RagdollController();
 
         readyToJump = true;
 
