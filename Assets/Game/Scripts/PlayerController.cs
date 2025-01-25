@@ -153,7 +153,7 @@ public class PlayerController : NetworkBehaviour
 
         _inputActions.Player.Sprint.performed += ctx =>
         {
-            ToggleRagdoll();
+            // ToggleRagdoll();
             _sprintInput = true;
         };
         _inputActions.Player.Sprint.canceled += ctx => _sprintInput = false;
