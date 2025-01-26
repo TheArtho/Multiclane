@@ -1,10 +1,13 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
 
 public class GameConsole : MonoBehaviour
 {
+    public static GameConsole Main;
+    
     private ConsoleInputActions _inputAction;
 
     public bool visible;
@@ -22,6 +25,17 @@ public class GameConsole : MonoBehaviour
 
     private void Awake()
     {
+        DontDestroyOnLoad(gameObject);
+        
+        if (Main)
+        {
+            DestroyImmediate(this);
+        }
+        else
+        {
+            Main = this;
+        }
+        
         _inputAction = new ConsoleInputActions();
 
         _inputAction.Console.Toggle.performed += ctx =>
@@ -42,14 +56,28 @@ public class GameConsole : MonoBehaviour
         ToggleConsole(_opened);
     }
 
+    private void Update()
+    {
+        // Réactive le focus si l'InputField n'a pas le focus
+        if (_opened && !inputField.isFocused)
+        {
+            inputField.ActivateInputField();
+        }
+    }
+
     private void ToggleConsole(bool value)
     {
-        console.SetActive(value);
+        console.GetComponent<CanvasGroup>().alpha = value ? 1 : 0;
 
         if (value)
         {
             inputField.text = string.Empty;
             inputField.ActivateInputField();
+        }
+        else
+        {
+            inputField.text = string.Empty;
+            inputField.DeactivateInputField();
         }
     }
 
@@ -97,6 +125,10 @@ public class GameConsole : MonoBehaviour
         }
     }
 
+    public static void Print(string message)
+    {
+        GameConsole.Main.AppendToOutput(GameConsole.Main.Echo(message));
+    }
 
     // Commande : Afficher la liste des commandes
     [ConsoleCommand("help", "Displays all available commands.")]
@@ -117,5 +149,21 @@ public class GameConsole : MonoBehaviour
     private string Echo(string message)
     {
         return message;
+    }
+    
+    [ConsoleCommand("choose", "(ServerSide) Choose a player to cut next")]
+    public string RequestChoosePlayerCommand(string playerId, string chosenPlayer)
+    {
+        MatchManager.Main.RequestChoosePlayer(int.Parse(playerId), int.Parse(chosenPlayer));
+
+        return $"[Player {playerId}] Player {chosenPlayer} has been chosen.";
+    }
+    
+    [ConsoleCommand("cut", "(ServerSide) Choose a wire to cut")]
+    public string RequestCutWireCommand(string playerId, string wireIndex)
+    {
+        MatchManager.Main.RequestCutWire(int.Parse(playerId), int.Parse(wireIndex));
+        
+        return $"[Player {playerId}] Wire {wireIndex} has been chosen.";
     }
 }

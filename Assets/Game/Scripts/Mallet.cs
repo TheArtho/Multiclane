@@ -7,4 +7,5 @@ public class Mallet : MonoBehaviour
 {
     public GameObject AllWires;
     public TextMeshPro Text;
+    public float spacing;
 }
