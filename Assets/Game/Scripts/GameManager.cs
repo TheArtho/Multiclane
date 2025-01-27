@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using TMPro;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -48,6 +49,8 @@ public class GameManager : MonoBehaviour
 
     public void StartServer()
     {
+        NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData("0.0.0.0", 7777);
+        
         networkServer.Subscribe();
         NetworkManager.Singleton.StartHost();
     }
@@ -66,8 +69,13 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void StartClient()
+    public void StartClient(string address)
     {
+        if (!string.IsNullOrEmpty(address))
+        {
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(address, 7777);
+        }
+        
         NetworkManager.Singleton.StartClient();
     }
     

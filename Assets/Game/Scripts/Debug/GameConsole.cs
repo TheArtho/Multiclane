@@ -184,12 +184,18 @@ public class GameConsole : MonoBehaviour
         switch (option.ToLower())
         {
             case "start":
-                GameManager.Main.StartClient();
+                GameManager.Main.StartClient("");
                 break;
             case "stop":
                 GameManager.Main.StopClient();
                 break;
         }
+    }
+    
+    [ConsoleCommand("connect", "Connect to ip address")]
+    public void ConnectCommand(string address = "127.0.0.1")
+    {
+        GameManager.Main.StartClient(address);
     }
     
     [ConsoleCommand("game", "game start or game stop")]
