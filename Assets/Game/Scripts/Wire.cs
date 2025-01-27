@@ -15,11 +15,13 @@ public class Wire : MonoBehaviour
     }
 
     public PlayerManager player;
+    public int id = -1;
 
     [SerializeField]
     private Wires _wireType = Wires.Unknown;
-    [SerializeField]
-    private MeshRenderer wireMesh;
+
+    [SerializeField] 
+    public MeshRenderer wireMesh;
     [SerializeField] 
     private MeshRenderer wireCutmesh;
     [SerializeField] 
@@ -80,6 +82,7 @@ public class Wire : MonoBehaviour
 
     public void Select()
     {
+        player.ChooseWire(id);
         Debug.Log("Click!");
     }
 }

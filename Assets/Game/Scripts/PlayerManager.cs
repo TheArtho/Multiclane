@@ -2,10 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.Networking.Transport;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class PlayerManager : MonoBehaviour
+public class PlayerManager : NetworkBehaviour
 {
     public enum Mode
     {
@@ -14,13 +15,73 @@ public class PlayerManager : MonoBehaviour
         ChooseWire
     }
 
+    [Serializable]
+    public class PlayerGameData
+    {
+        public int playerId;
+        public int remainingTurns;
+        public Roles role;
+        public WireAmount wireAmount;
+        public int remainingGreen;
+        public int remainingRoundWire;
+        public int playerCutter;
+        public List<List<Wires>> allVisibleWires;
+        public Mode mode;
+    }
+
+    [Serializable]
+    public class PlayerNetworkData : INetworkSerializable
+    {
+        public int playerId;
+        public int remainingTurns;
+        public Roles role;
+        public int neutralAmount;
+        public int greenAmount;
+        public int redAmount;
+        public int remainingGreen;
+        public int remainingRoundWire;
+        public int playerCutter;
+        public Mode mode;
+        public Wires[] visibleWires;
+        
+        // Implémentation de la sérialisation des données
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            // Sérialisation des types simples (int, etc.)
+            serializer.SerializeValue(ref playerId);
+            serializer.SerializeValue(ref remainingTurns);
+            serializer.SerializeValue(ref neutralAmount);
+            serializer.SerializeValue(ref greenAmount);
+            serializer.SerializeValue(ref redAmount);
+            serializer.SerializeValue(ref remainingGreen);
+            serializer.SerializeValue(ref remainingRoundWire);
+            serializer.SerializeValue(ref playerCutter);
+            
+            // Sérialisation de tableaux
+            serializer.SerializeValue(ref visibleWires);
+
+            // Sérialisation des énumérations (s'ils sont sérialisables en tant qu'entiers)
+            serializer.SerializeValue(ref role);  // Assurez-vous que Roles est sérialisable
+            serializer.SerializeValue(ref mode);  // Assurez-vous que Mode est sérialisable
+        }
+    }
+
+
     [SerializeField]
     private Mallet mallet;
+    [SerializeField] 
+    private GameObject playerHeadController;
+    [SerializeField]
+    private GameObject mesh;
 
-    [Space] [SerializeField] 
+    [Space] 
+    
+    [SerializeField] 
     private int playerId;
     [SerializeField]
     private Roles role;
+    [SerializeField] 
+    private Mode mode;
     [SerializeField]
     private int remainingTurns = -1;
     [SerializeField]
@@ -38,20 +99,87 @@ public class PlayerManager : MonoBehaviour
     [SerializeField] private int playerCutter;
 
     [SerializeField] private List<Wire> wireObjects;
-
-    public void ReceivePlayerData(int playerId, int remainingTurns, Roles role, WireAmount wireAmount, int remainingGreen, int remainingRoundWire, int playerCutter, List<List<Wires>> allVisibleWires)
+    
+    #region Network RPC
+    
+    // Server RPCs
+    
+    [ServerRpc(RequireOwnership = false)]
+    private void ClientChoosePlayerRequestServerRpc(int chosenPlayer, ServerRpcParams serverRpcParams = default)
     {
-        this.playerId = playerId;
-        this.wireAmount = wireAmount;
-        this.role = role;
-        this.remainingGreen = remainingGreen;
-        this.remainingRoundWire = remainingRoundWire;
-        this.playerCutter = playerCutter;
+        var clientId = serverRpcParams.Receive.SenderClientId;
+        MatchManager.Main.RequestChoosePlayer((int) clientId, chosenPlayer);
+    }
+    
+    [ServerRpc(RequireOwnership = false)]
+    private void ClientChooseWireRequestServerRpc(int chosenPlayer, ServerRpcParams serverRpcParams = default)
+    {
+        var clientId = serverRpcParams.Receive.SenderClientId;
+        MatchManager.Main.RequestCutWire((int) clientId, chosenPlayer);
+    }
+    
+    // Client RPCs
+    
+    [ClientRpc]
+    public void PingClientRpc(int[] data)
+    {
+        Debug.Log($"Ping {data[0]}");
+    }
+
+    [ClientRpc]
+    public void ReceivePrivatePlayerDataClientRpc(PlayerNetworkData data, ClientRpcParams clientRpcParams = default)
+    {
+        ReceivePlayerData(data);
+    }
+
+    [ClientRpc]
+    public void PlacePlayerClientRpc(int playerIndex, int totalPlayers, Vector3 centerPosition)
+    {
+        PlacePlayerAtPosition(playerIndex, totalPlayers, 5.15f, centerPosition, transform);
+    }
+    
+    #endregion
+
+    private void Start()
+    {
+        // Si c'est le client
+        if (IsOwner)
+        {
+            // Désactiver le Mesh
+            mesh.transform.localScale = Vector3.zero;
+        }
+        else
+        {
+            // Désactiver la Fps Camera et la camera
+            playerHeadController.SetActive(false);
+        }
+    }
+
+    public void ReceivePlayerData(PlayerNetworkData data)
+    {
+        List<Wires> visibleWires = new List<Wires>(data.visibleWires);
         
-        UpdateMallet(remainingTurns, allVisibleWires[playerId]);
-        this.remainingTurns = remainingTurns;
-        
-        GameManager.UpdateScore(remainingTurns, remainingGreen, remainingRoundWire);
+        this.playerId = data.playerId;
+        this.wireAmount = new WireAmount()
+        {
+            NeutralWires = data.neutralAmount,
+            GreenWires = data.greenAmount,
+            RedWires = data.redAmount
+        };
+        this.role = data.role;
+        this.remainingGreen = data.remainingGreen;
+        this.remainingRoundWire = data.remainingRoundWire;
+        this.playerCutter = data.playerCutter;
+        this.mode = data.mode;
+        UpdateMallet(data.remainingTurns, visibleWires);
+        this.remainingTurns = data.remainingTurns;
+
+        // Code Owner only
+        if (IsOwner)
+        {
+            GameManager.Main.playerMode = this.mode;
+            GameManager.UpdateScore(remainingTurns, remainingGreen, remainingRoundWire);
+        }
     }
 
     void UpdateMallet(int remainingTurns, List<Wires> visibleWires)
@@ -74,17 +202,27 @@ public class PlayerManager : MonoBehaviour
                 DestroyImmediate(mallet.AllWires.transform.GetChild(0).gameObject);
             }
 
-            for (int i = 0; i < visibleWires.Count; i++)
+            if (visibleWires != null)
             {
-                var go = GameObject.Instantiate(wirePrefab, mallet.AllWires.transform);
+                for (int i = 0; i < visibleWires.Count; i++)
+                {
+                    var go = GameObject.Instantiate(wirePrefab, mallet.AllWires.transform);
+                    Wire wireComponent = go.GetComponent<Wire>();
+                    wireComponent.player = this;
+                    wireComponent.id = i;
+                    wireObjects.Add(wireComponent);
 
-                wireObjects.Add(go.GetComponent<Wire>());
+                    if (!IsOwner)
+                    {
+                        wireComponent.wireMesh.GetComponent<BoxCollider>().enabled = false;
+                    }
+                }
+                
+                PlaceObjectsInLine(wireObjects, mallet.spacing);
             }
-
-            PlaceObjectsInLine(wireObjects, mallet.spacing);
         }
         
-        if (wireObjects.Count == visibleWires.Count)
+        if (visibleWires != null && wireObjects.Count == visibleWires.Count)
         {
             for (int i = 0; i < wireObjects.Count; i++)
             {
@@ -120,5 +258,48 @@ public class PlayerManager : MonoBehaviour
             // Avancer pour le prochain objet
             currentX += objectWidth + spacing;
         }
+    }
+
+    public void ChooseWire(int wireIndex)
+    {
+        if (GameManager.Main.playerMode != Mode.ChooseWire) return;
+        
+        Debug.Log($"Cut Wire Method: {NetworkManager.Singleton.LocalClientId} choose {wireIndex}");
+        // MatchManager.Main.RequestCutWire(GameManager.Main.playerId, wireIndex);
+        ClientChooseWireRequestServerRpc(wireIndex);
+    }
+
+    public void ChoosePlayer()
+    {
+        if (GameManager.Main.playerMode != Mode.ChoosePlayer) return;
+        
+        Debug.Log($"Choose Player Method: {NetworkManager.Singleton.LocalClientId} choose {playerId}");
+        // MatchManager.Main.RequestChoosePlayer(GameManager.Main.playerId, playerId);
+        ClientChoosePlayerRequestServerRpc(playerId);
+    }
+    
+    public static void PlacePlayerAtPosition(int playerNumber, int totalPlayers, float radius, Vector3 tableCenter, Transform playerTransform)
+    {
+        // L'angle entre chaque joueur
+        float angleStep = 360f / totalPlayers;
+
+        // Calcul de l'angle pour le joueur actuel basé sur son numéro
+        float angle = playerNumber * angleStep;
+
+        // Conversion de l'angle en radians
+        float angleInRadians = Mathf.Deg2Rad * angle;
+
+        // Calcul de la position du joueur sur le cercle
+        float x = tableCenter.x + Mathf.Cos(angleInRadians) * radius;
+        float z = tableCenter.z + Mathf.Sin(angleInRadians) * radius;
+
+        // Positionner le joueur à la position calculée
+        playerTransform.position = new Vector3(x, playerTransform.position.y, z);
+
+        // Calcul de la rotation du joueur pour qu'il regarde le centre de la table
+        Quaternion rotation = Quaternion.LookRotation(tableCenter - playerTransform.position);
+
+        // Appliquer la rotation au joueur
+        playerTransform.eulerAngles = new Vector3(0, rotation.eulerAngles.y, 0);
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
@@ -104,9 +105,16 @@ public class GameConsole : MonoBehaviour
 
         var output = CommandManager.ExecuteCommand(this, commandLine);
         AppendToOutput(output);
-        
-        Debug.Log($"[GameConsole] {output}");
 
+        if (!string.IsNullOrEmpty(output))
+        {
+            Debug.Log($"[GameConsole] {commandLine} : {output}");
+        }
+        else
+        {
+            Debug.Log($"[GameConsole] {commandLine}");
+        }
+        
         inputField.text = string.Empty;
         inputField.ActivateInputField();
     }
@@ -128,6 +136,11 @@ public class GameConsole : MonoBehaviour
     public static void Print(string message)
     {
         GameConsole.Main.AppendToOutput(GameConsole.Main.Echo(message));
+
+        if (NetworkManager.Singleton.IsServer)
+        {
+            GameManager.Main.networkServer.ConsoleMessageClientRpc(message);
+        }
     }
 
     // Commande : Afficher la liste des commandes
@@ -149,6 +162,48 @@ public class GameConsole : MonoBehaviour
     private string Echo(string message)
     {
         return message;
+    }
+
+    [ConsoleCommand("server", "server start or server stop")]
+    public void ServerCommand(string option)
+    {
+        switch (option.ToLower())
+        {
+            case "start":
+                GameManager.Main.StartServer();
+                break;
+            case "stop":
+                GameManager.Main.StopServer();
+                break;
+        }
+    }
+    
+    [ConsoleCommand("client", "client start or client stop")]
+    public void ClientCommand(string option)
+    {
+        switch (option.ToLower())
+        {
+            case "start":
+                GameManager.Main.StartClient();
+                break;
+            case "stop":
+                GameManager.Main.StopClient();
+                break;
+        }
+    }
+    
+    [ConsoleCommand("game", "game start or game stop")]
+    public void GameCommand(string option)
+    {
+        switch (option.ToLower())
+        {
+            case "start":
+                MatchManager.Main.StartGame();
+                break;
+            case "stop":
+                // TODO stop game
+                break;
+        }
     }
     
     [ConsoleCommand("choose", "(ServerSide) Choose a player to cut next")]

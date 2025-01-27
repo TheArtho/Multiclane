@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -12,6 +13,8 @@ public class OutlineHover : MonoBehaviour
     private UnityEvent onLeave = new UnityEvent();
     [SerializeField]
     private UnityEvent onClick = new UnityEvent();
+
+    public PlayerManager.Mode modeFilter = PlayerManager.Mode.ChooseWire;
 
     void Start()
     {
@@ -31,6 +34,8 @@ public class OutlineHover : MonoBehaviour
 
     public void Hover()
     {
+        if (GameManager.Main.playerMode != modeFilter) return;
+        
         onHover.Invoke();
         SetOutlineActive(true);
     }
@@ -39,6 +44,14 @@ public class OutlineHover : MonoBehaviour
     {
         onLeave.Invoke();
         SetOutlineActive(false);
+    }
+
+    private void Update()
+    {
+        if (GameManager.Main.playerMode != modeFilter)
+        {
+            Leave();
+        }
     }
 
     public void SetOutlineActive(bool active)

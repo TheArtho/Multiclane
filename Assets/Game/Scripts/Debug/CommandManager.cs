@@ -76,7 +76,7 @@ public static class CommandManager
         {
             var attribute = c.Value.GetCustomAttribute<ConsoleCommandAttribute>();
             var parameters = c.Value.GetParameters()
-                .Select(p => $"{p.Name}: {p.ParameterType.Name}") // Affiche le nom et le type du paramètre
+                .Select(p => $"{p.Name}") // Affiche le nom et le type du paramètre
                 .ToArray();
         
             var paramsString = parameters.Length > 0 ? $" {{ {string.Join(", ", parameters)} }}" : "";

@@ -2,25 +2,36 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [Serializable]
-public struct WireAmount
+public class WireAmount : INetworkSerializable
 {
     public int NeutralWires;
     public int GreenWires;
     public int RedWires;
+    
+    public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+    {
+        // Sérialisation des champs de WireAmount
+        serializer.SerializeValue(ref NeutralWires);
+        serializer.SerializeValue(ref GreenWires);
+        serializer.SerializeValue(ref RedWires);
+    }
 }
 
 public class MatchManager : MonoBehaviour
 {
     [Serializable]
-    private struct PlayerData {
-        public int Id;
-        public string Name;
-        public Roles Role;
-        public List<Wires> VisibleWires;
-        public List<Wires> Wires;
+    private class PlayerData {
+        [FormerlySerializedAs("Id")] public int id;
+        [FormerlySerializedAs("Name")] public string name;
+        [FormerlySerializedAs("Role")] public Roles role;
+        [FormerlySerializedAs("VisibleWires")] public List<Wires> visibleWires;
+        [FormerlySerializedAs("Wires")] public List<Wires> wires;
+        public PlayerManager.Mode mode;
     }
     
     private struct RoleAmount
@@ -64,7 +75,7 @@ public class MatchManager : MonoBehaviour
     private enum State
     {
         Idle,
-        WaitingForCutter,
+        WaitingForPlayer,
         WaitingForWire,
         Ended
     }
@@ -72,7 +83,7 @@ public class MatchManager : MonoBehaviour
     public static MatchManager Main;
 
     [SerializeField]
-    private List<PlayerManager> playerManagerList;
+    public List<PlayerManager> playerManagerList;
 
     private int numberPlayers;
     private List<Wires> AllWires;
@@ -80,8 +91,9 @@ public class MatchManager : MonoBehaviour
     private int turnCount;
     private int wirePerPlayer = 5;
     private int maxTurn = 4;
+    public readonly int maxPlayers = 8;
 
-    private int playerCutter;
+    private int playerSelected;
 
     private int RemainingNeutralWires;
     private int RemainingGreenWires;
@@ -93,7 +105,7 @@ public class MatchManager : MonoBehaviour
 
     private EndCondition _endCondition = EndCondition.None;
     [SerializeField]
-    private State state = State.WaitingForCutter;
+    private State state = State.WaitingForPlayer;
 
     private ChooseRequest chooseRequest;
     private WireRequest wireRequest;
@@ -107,22 +119,26 @@ public class MatchManager : MonoBehaviour
 
     private void Start()
     {
-        StartGame(playerManagerList.Count);
+        // StartGame();
     }
 
-    public void StartGame(int numberPlayers)
+    public void StartGame()
     {
+        // Met à jour les joueurs selon la liste de joueurs du serveur
+        playerManagerList = new List<PlayerManager>(GameManager.Main.networkServer.playerObjects.Values);
+        
+        numberPlayers = playerManagerList.Count;
+        
         if (numberPlayers < 4)
         {
-            throw new Exception("Not enough players.");
+            // TODO Activate this exception
+            // throw new Exception("Not enough players.");
         }
         
         if (numberPlayers > 8)
         {
             throw new Exception("Too many players.");
         }
-        
-        this.numberPlayers = numberPlayers;
         
         // Calculer le nombre de fils par rapport au nombre de joueurs
         var wiresPerType = GetWiresFromNumberPlayers(numberPlayers);
@@ -142,9 +158,13 @@ public class MatchManager : MonoBehaviour
         RemainingGreenWires = wiresPerType.GreenWires;
         RemainingNeutralWires = wiresPerType.NeutralWires;
         RemainingRedWires = wiresPerType.RedWires;
-        playerCutter = SelectRandomPlayerId();
         
-        StartNextTurn(turnCount);
+        playerSelected = SelectRandomPlayerId();
+        
+        StartNextTurn(turnCount, false);
+        // Force the first player to choose another player
+        players[playerSelected].mode = PlayerManager.Mode.ChoosePlayer;
+        SendAllPlayerData();
         
         StartCoroutine(GameLoop());
     }
@@ -162,45 +182,61 @@ public class MatchManager : MonoBehaviour
             while (CheckEndRound())
             {
                 // Select player to cut
-                state = State.WaitingForCutter;
-                GameConsole.Print($"{players[playerCutter].Name} has to choose a cutter.");
+                state = State.WaitingForPlayer;
+                GameConsole.Print($"{players[playerSelected].name} has to choose a cutter.");
                 // Waiting for response from the player
                 // TODO Request will be validated during the RTC callback
                 while (chooseRequest == null)
                 {
                     yield return null;
                 }
-                state = State.Idle;
                 // Process the choice
                 ProcessChosenCutter(chooseRequest.playerId, chooseRequest.choosenPlayerId);
 
+                for (int i = 0; i < players.Count; i++)
+                {
+                    players[i].mode = CalculatePlayerMode(i);
+                }
+                
                 SendAllPlayerData();
+                state = State.Idle;
                 
                 // Player has to cut
                 state = State.WaitingForWire;
-                GameConsole.Print($"{players[playerCutter].Name} has to cut a wire.");
+                GameConsole.Print($"{players[playerSelected].name} has to cut a wire.");
                 // Waiting for response from the player
                 // TODO Request will be validated during the RTC callback
                 while (wireRequest == null)
                 {
                     yield return null;
                 }
-                state = State.Idle;
                 // Process the choice
                 ProcessChosenWire(wireRequest.playerId, wireRequest.choosenWireIndex);
                 
+                for (int i = 0; i < players.Count; i++)
+                {
+                    players[i].mode = CalculatePlayerMode(i);
+                }
+                
                 SendAllPlayerData();
+                state = State.Idle;
                 
                 // Reset the requests
                 chooseRequest = null;
                 wireRequest = null;
 
                 UpdateAllWires();
+
+                yield return new WaitForSeconds(1);
             }
 
             wirePerPlayer--;
             turnCount++;
+            // Mélanger les fils
+            ShuffleWires();
             StartNextTurn(turnCount);
+            players[playerSelected].mode = PlayerManager.Mode.ChoosePlayer;
+            SendAllPlayerData();
             yield return null;
         }
 
@@ -213,6 +249,7 @@ public class MatchManager : MonoBehaviour
     {
         return numberPlayers switch
         {
+            2 => new WireAmount() {NeutralWires = 7, GreenWires = 2, RedWires = 1},
             4 => new WireAmount() {NeutralWires = 15, GreenWires = 4, RedWires = 1},
             5 => new WireAmount() {NeutralWires = 19, GreenWires = 6, RedWires = 1},
             6 => new WireAmount() {NeutralWires = 23, GreenWires = 6, RedWires = 1},
@@ -253,6 +290,7 @@ public class MatchManager : MonoBehaviour
         
         return numberPlayers switch
         {
+            2 => new RoleAmount() {Survivors = 1, Saboteurs = 1},
             4 => random == 0 ? new RoleAmount() {Survivors = 2, Saboteurs = 2} : new RoleAmount() {Survivors = 3, Saboteurs = 1},
             5 => new RoleAmount() {Survivors = 3, Saboteurs = 2},
             6 => new RoleAmount() {Survivors = 4, Saboteurs = 2},
@@ -315,25 +353,41 @@ public class MatchManager : MonoBehaviour
     {
         return new WireAmount()
         {
-            NeutralWires = players[playerId].Wires.Count(wires => wires == Wires.Neutral),
-            GreenWires = players[playerId].Wires.Count(wires => wires == Wires.Green),
-            RedWires = players[playerId].Wires.Count(wires => wires == Wires.Red),
+            NeutralWires = players[playerId].wires.Count(wires => wires == Wires.Neutral),
+            GreenWires = players[playerId].wires.Count(wires => wires == Wires.Green),
+            RedWires = players[playerId].wires.Count(wires => wires == Wires.Red),
         };
+    }
+
+    private PlayerManager.Mode CalculatePlayerMode(int playerId)
+    {
+        if (state == State.WaitingForPlayer && playerSelected == playerId)
+        {
+            return PlayerManager.Mode.ChooseWire;
+        }
+        
+        if (state == State.WaitingForWire && playerSelected == playerId)
+        {
+            return PlayerManager.Mode.ChoosePlayer;
+        }
+
+        return PlayerManager.Mode.Spectate;
     }
 
     private void ProcessChosenCutter(int playerId, int chosenPlayerId)
     {
-        playerCutter = chosenPlayerId;
+        playerSelected = chosenPlayerId;
     }
 
     private void ProcessChosenWire(int playerId, int wireIndex)
     {
-        GameConsole.Print($"It was a {players[playerId].Wires[wireIndex].ToString()}!");
+        GameConsole.Print($"It was a {players[playerId].wires[wireIndex].ToString()}!");
         
         // Change le file pour sa version coupée
-        Wires wire = GetCutWire(players[playerId].Wires[wireIndex]);
-        players[playerId].Wires[wireIndex] = wire;
-        players[playerId].VisibleWires[wireIndex] = wire;
+        Wires wire = players[playerId].wires[wireIndex];
+        Wires wireCut = GetCutWire(wire);
+        players[playerId].wires[wireIndex] = wireCut;
+        players[playerId].visibleWires[wireIndex] = wireCut;
 
         // Si le fil est un fil vert, alors on décrémente le compteur de fils verts
         if (wire == Wires.Green)
@@ -359,7 +413,7 @@ public class MatchManager : MonoBehaviour
 
         foreach (var p in players)
         {
-            AllWires.AddRange(p.Wires);
+            AllWires.AddRange(p.wires);
         }
 
         // Supprime tous les fils qui sont coupés
@@ -409,34 +463,34 @@ public class MatchManager : MonoBehaviour
         return true;
     }
 
-    private void StartNextTurn(int nextTurn)
+    private void StartNextTurn(int nextTurn, bool shuffle = false)
     {
         List<PlayerData> playersTemp = new List<PlayerData>();
         
-        RemainingRoundWires = numberPlayers - nextTurn;
+        RemainingRoundWires = numberPlayers;
         
         // Set roles  and wires for each player
         for (int i = 0; i < numberPlayers; i++)
         {
             PlayerData newPlayer = new PlayerData
             {
-                Id = i,
-                Name = "Player " + (i),
-                Role = AllRoles[i],
-                Wires = SetPlayerWires(i, wirePerPlayer),
-                VisibleWires = Enumerable.Repeat(Wires.Unknown, wirePerPlayer).ToList()
+                id = i,
+                name = "Player " + (i),
+                role = AllRoles[i],
+                wires = SetPlayerWires(i, wirePerPlayer),
+                visibleWires = Enumerable.Repeat(Wires.Unknown, wirePerPlayer).ToList(),
+                mode = CalculatePlayerMode(i)
             };
             playersTemp.Add(newPlayer);
         }
 
         players = playersTemp;
-
-        SendAllPlayerData();
     }
 
-    private void SendPlayerData(int playerId, Roles role, WireAmount wireAmount, int remainingGreen, int remainingRoundWire, int playerCutter, List<List<Wires>> allVisibleWires)
+    private void SendPlayerData(PlayerManager.PlayerNetworkData data)
     {
-        playerManagerList[playerId].ReceivePlayerData(playerId, maxTurn - turnCount, role, wireAmount, remainingGreen, remainingRoundWire, playerCutter, allVisibleWires);
+        playerManagerList[data.playerId].ReceivePrivatePlayerDataClientRpc(data);
+        //playerManagerList[data.playerId].ReceivePlayerData(data);
     }
     
     private void SendAllPlayerData()
@@ -445,30 +499,47 @@ public class MatchManager : MonoBehaviour
 
         foreach (var p in players)
         {
-            allVisibleWires.Add(p.VisibleWires);
+            allVisibleWires.Add(p.visibleWires);
         }
         
         for (int i = 0; i < playerManagerList.Count; i++)
         {
-            SendPlayerData(i, players[i].Role, CalculateWireAmountForPlayer(i), RemainingGreenWires, RemainingRoundWires, playerCutter, allVisibleWires);
+            WireAmount wireAmount = CalculateWireAmountForPlayer(i);
+            
+            PlayerManager.PlayerNetworkData data = new PlayerManager.PlayerNetworkData
+            {
+                playerId = i,
+                remainingTurns = maxTurn - turnCount,
+                role = players[i].role,
+                neutralAmount = wireAmount.NeutralWires,
+                greenAmount = wireAmount.GreenWires,
+                redAmount = wireAmount.RedWires,
+                remainingGreen = RemainingGreenWires,
+                remainingRoundWire = RemainingRoundWires,
+                playerCutter = playerSelected,
+                mode = players[i].mode,
+                visibleWires = allVisibleWires[i].ToArray()
+            };
+            
+            SendPlayerData(data);
         }
     }
     
     public void RequestChoosePlayer(int playerId, int chosenPlayerId)
     {
-        if (state != State.WaitingForCutter)
+        if (state != State.WaitingForPlayer)
         {
-            throw new Exception($"Server is not waiting for this request.");
+            throw new Exception($"Server is not waiting for this request: cut {playerId} {chosenPlayerId}");
         }
         
         // Vérifier l'identité de la personne qui choisit
-        if (playerId != playerCutter)
+        if (playerId != playerSelected)
         {
             throw new Exception($"Player {playerId} doesn't have the right to choose.");
         }
         
         // Vérifier que le joueur ne s'est pas choisi lui-même
-        if (playerCutter == chosenPlayerId)
+        if (playerSelected == chosenPlayerId)
         {
             throw new Exception("Player can't choose himself.");
         }
@@ -487,10 +558,10 @@ public class MatchManager : MonoBehaviour
     {
         if (state != State.WaitingForWire)
         {
-            throw new Exception($"Server is not waiting for this request.");
+            throw new Exception($"Server is not waiting for this request: cut {playerId} {wireIndex}");
         }
         
-        if (playerId != playerCutter)
+        if (playerId != playerSelected)
         {
             throw new Exception($"Player {playerId} doesn't have the right to choose.");
         }
@@ -500,7 +571,7 @@ public class MatchManager : MonoBehaviour
             throw new Exception("Invalid wire index.");
         }
 
-        if (players[playerId].Wires[wireIndex] != Wires.Neutral && players[playerId].Wires[wireIndex] != Wires.Green && players[playerId].Wires[wireIndex] != Wires.Red)
+        if (players[playerId].wires[wireIndex] != Wires.Neutral && players[playerId].wires[wireIndex] != Wires.Green && players[playerId].wires[wireIndex] != Wires.Red)
         {
             throw new Exception($"Wire {wireIndex} has already been cut.");
         }

@@ -47,7 +47,14 @@ public class CameraRaycastController : MonoBehaviour
                 // Gère le clic de souris
                 if (Input.GetMouseButtonDown(0))
                 {
-                    hoveredObject.TriggerClick();
+                    try
+                    {
+                        hoveredObject.TriggerClick();
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
                 }
             }
             else
