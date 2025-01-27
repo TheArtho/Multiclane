@@ -68,9 +68,13 @@ public class NetworkServer : NetworkBehaviour
                 Debug.Log($"Player {clientId} connecté et enregistré.");
 
                 List<ulong> tmp = new List<ulong>(playerObjects.Keys);
-                int index = tmp.TakeWhile(t => t != clientId).Count();
 
-                playerObjects[clientId].PlacePlayerClientRpc(index, playerObjects.Count, GameManager.Main.tableCenter.position);
+                int index = 0;
+                foreach (var keyValuePair in playerObjects)
+                {
+                    keyValuePair.Value.PlacePlayerClientRpc(index, playerObjects.Count, GameManager.Main.tableCenter.position);
+                    index++;
+                }
             }
         }
     }

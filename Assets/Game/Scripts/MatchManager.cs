@@ -84,6 +84,7 @@ public class MatchManager : MonoBehaviour
 
     [SerializeField]
     public List<PlayerManager> playerManagerList;
+    private List<ulong> playerIdList;
 
     private int numberPlayers;
     private List<Wires> AllWires;
@@ -138,6 +139,7 @@ public class MatchManager : MonoBehaviour
             
         // Met à jour les joueurs selon la liste de joueurs du serveur
         playerManagerList = new List<PlayerManager>(GameManager.Main.networkServer.playerObjects.Values);
+        playerIdList = new List<ulong>(GameManager.Main.networkServer.playerObjects.Keys);
         
         numberPlayers = playerManagerList.Count;
         
@@ -208,7 +210,7 @@ public class MatchManager : MonoBehaviour
 
                 for (int i = 0; i < players.Count; i++)
                 {
-                    players[i].mode = CalculatePlayerMode(i);
+                    players[i].mode = CalculatePlayerMode(players[i].id);
                 }
                 
                 SendAllPlayerData();
@@ -488,7 +490,7 @@ public class MatchManager : MonoBehaviour
         {
             PlayerData newPlayer = new PlayerData
             {
-                id = i,
+                id = (int) playerIdList[i],
                 name = "Player " + (i),
                 role = AllRoles[i],
                 wires = SetPlayerWires(i, wirePerPlayer),
@@ -522,7 +524,7 @@ public class MatchManager : MonoBehaviour
             
             PlayerManager.PlayerNetworkData data = new PlayerManager.PlayerNetworkData
             {
-                playerId = i,
+                playerId = (int) playerIdList[i],
                 remainingTurns = maxTurn - turnCount,
                 role = players[i].role,
                 neutralAmount = wireAmount.NeutralWires,
