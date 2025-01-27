@@ -103,7 +103,8 @@ public class MatchManager : MonoBehaviour
     [SerializeField]
     private List<PlayerData> players;
 
-    private EndCondition _endCondition = EndCondition.None;
+    private EndCondition endCondition = EndCondition.None;
+    private Roles winners = Roles.Saboteur;
     [SerializeField]
     private State state = State.WaitingForPlayer;
 
@@ -122,18 +123,30 @@ public class MatchManager : MonoBehaviour
         // StartGame();
     }
 
+    public void ResetGame()
+    {
+        endCondition = EndCondition.None;
+        chooseRequest = null;
+        wireRequest = null;
+        wirePerPlayer = 5;
+        turnCount = 0;
+    }
+
     public void StartGame()
     {
+        ResetGame();
+            
         // Met à jour les joueurs selon la liste de joueurs du serveur
         playerManagerList = new List<PlayerManager>(GameManager.Main.networkServer.playerObjects.Values);
         
         numberPlayers = playerManagerList.Count;
         
+        /*
         if (numberPlayers < 4)
         {
-            // TODO Activate this exception
-            // throw new Exception("Not enough players.");
+            throw new Exception("Not enough players.");
         }
+        */
         
         if (numberPlayers > 8)
         {
@@ -174,7 +187,7 @@ public class MatchManager : MonoBehaviour
         GameConsole.Print($"Game Started with {AllWires.Count} wires.");
         
         // For each round
-        while (_endCondition == EndCondition.None && CheckEndGame())
+        while (endCondition == EndCondition.None && CheckEndGame())
         {
             GameConsole.Print($"\n####Turn {turnCount + 1}####\n");
             
@@ -242,7 +255,8 @@ public class MatchManager : MonoBehaviour
 
         state = State.Ended;
         
-        GameConsole.Print($"Game is finished ! Result : {_endCondition}");
+        GameConsole.Print($"Game is finished ! Result : {endCondition}");
+        GameConsole.Print($"{winners}s won!");
     }
 
     private WireAmount GetWiresFromNumberPlayers(int numberPlayers)
@@ -425,19 +439,19 @@ public class MatchManager : MonoBehaviour
         if (RemainingRedWires <= 0)
         {
             // Saboteurs win
-            _endCondition = EndCondition.BombExploded;
+            endCondition = EndCondition.BombExploded;
             return false;
         }
         else if (RemainingGreenWires <= 0)
         {
             // Survivors win
-            _endCondition = EndCondition.BombDefused;
+            endCondition = EndCondition.BombDefused;
             return false;
         }
         else if (RemainingRoundWires <= 0)
         {
             // Next Round
-            _endCondition = EndCondition.None;
+            endCondition = EndCondition.None;
             return false;
         }
 
@@ -447,7 +461,7 @@ public class MatchManager : MonoBehaviour
     private bool CheckEndGame()
     {
         // Game has already ended
-        if (_endCondition != EndCondition.None)
+        if (endCondition != EndCondition.None)
         {
             return false;
         }
@@ -456,7 +470,7 @@ public class MatchManager : MonoBehaviour
         if (turnCount >= maxTurn)
         {
             // Saboteurs win
-            _endCondition = EndCondition.TimesUp;
+            endCondition = EndCondition.TimesUp;
             return false;
         }
         

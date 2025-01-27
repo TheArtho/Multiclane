@@ -121,9 +121,9 @@ public class PlayerManager : NetworkBehaviour
     // Client RPCs
     
     [ClientRpc]
-    public void PingClientRpc(int[] data)
+    public void PingClientRpc()
     {
-        Debug.Log($"Ping {data[0]}");
+        Debug.Log($"Ping.");
     }
 
     [ClientRpc]
@@ -178,7 +178,7 @@ public class PlayerManager : NetworkBehaviour
         if (IsOwner)
         {
             GameManager.Main.playerMode = this.mode;
-            GameManager.UpdateScore(remainingTurns, remainingGreen, remainingRoundWire);
+            GameManager.UpdateInfo(remainingTurns, remainingGreen, remainingRoundWire, this.role);
         }
     }
 

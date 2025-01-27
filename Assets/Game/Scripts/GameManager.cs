@@ -1,11 +1,8 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Data;
 using TMPro;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class GameManager : MonoBehaviour
 {
@@ -14,15 +11,20 @@ public class GameManager : MonoBehaviour
     public int playerId;
     public PlayerManager.Mode playerMode = PlayerManager.Mode.Spectate;
     
-    public TextMeshProUGUI score;
-
-    [SerializeField] 
+    [FormerlySerializedAs("score")] public TextMeshProUGUI info;
+    public TextMeshProUGUI roleInfo;
+    
     public NetworkServer networkServer;
 
     public Material NeutralWireMaterial;
     public Material GreenWireMaterial;
     public Material RedWireMaterial;
     public Material UnknownWireMaterial;
+    
+    [Space]
+    
+    public Color SurvivorColor;
+    public Color SaboteurColor;
 
     [Space]
     
@@ -84,10 +86,21 @@ public class GameManager : MonoBehaviour
         NetworkManager.Singleton.Shutdown();
     }
 
-    public static void UpdateScore(int remainingTurns, int remainingGreen, int remainingRoundWire)
+    public static void UpdateInfo(int remainingTurns, int remainingGreen, int remainingRoundWire, Roles role)
     {
-        Main.score.text = $"Remaining Rounds : {remainingTurns}\n";
-        Main.score.text += $"Remaining Wires in round : {remainingRoundWire}\n";
-        Main.score.text += $"Remaining Green Wires : {remainingGreen}";
+        Main.info.text = $"Remaining Rounds : {remainingTurns}\n";
+        Main.info.text += $"Remaining Wires in round : {remainingRoundWire}\n";
+        Main.info.text += $"Remaining Green Wires : {remainingGreen}";
+
+        if (role == Roles.Survivor)
+        {
+            Main.roleInfo.text = "You are Survivor";
+            Main.roleInfo.color = Main.SurvivorColor;
+        }
+        else
+        {
+            Main.roleInfo.text = "You are Saboteur";
+            Main.roleInfo.color = Main.SaboteurColor;
+        }
     }
 }
