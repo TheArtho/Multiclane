@@ -8,11 +8,13 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Main;
 
+    public string playerName;
     public int playerId;
     public PlayerManager.Mode playerMode = PlayerManager.Mode.Spectate;
     
     [FormerlySerializedAs("score")] public TextMeshProUGUI info;
     public TextMeshProUGUI roleInfo;
+    public TextMeshProUGUI playerNameInfo;
     
     public NetworkServer networkServer;
 
@@ -41,6 +43,10 @@ public class GameManager : MonoBehaviour
             Main = this;
         }
         
+        #if UNITY_EDITOR
+        UnityEngine.Rendering.DebugManager.instance.enableRuntimeUI = false;
+        #endif
+        
         DontDestroyOnLoad(gameObject);
     }
 
@@ -49,7 +55,7 @@ public class GameManager : MonoBehaviour
         networkServer = GetComponent<NetworkServer>();
     }
 
-    public void StartServer()
+    public void StartServer(ushort port = 7777)
     {
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData("0.0.0.0", 7777);
         
@@ -71,11 +77,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void StartClient(string address)
+    public void StartClient(string address, ushort port = 7777)
     {
         if (!string.IsNullOrEmpty(address))
         {
-            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(address, 7777);
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(address, port);
         }
         
         NetworkManager.Singleton.StartClient();

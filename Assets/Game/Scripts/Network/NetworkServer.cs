@@ -9,6 +9,27 @@ public class NetworkServer : NetworkBehaviour
 {
     // Dictionnaire pour associer un clientId à l'objet joueur correspondant
     public Dictionary<ulong, PlayerManager> playerObjects = new Dictionary<ulong, PlayerManager>();
+    public Dictionary<ulong, string> playerNames = new Dictionary<ulong, string>();
+    
+    // ServerRpc
+
+    [ServerRpc(RequireOwnership = false)]
+    public void SendPlayerNameServerRpc(string playerName, ServerRpcParams serverRpcParams = default)
+    {
+        var clientId = serverRpcParams.Receive.SenderClientId;
+
+        if (NetworkManager.ConnectedClients.ContainsKey((ulong) clientId))
+        {
+            GameConsole.Print($"{playerName} joined the game.");
+                
+            playerNames[clientId] = playerName;
+                
+            foreach (var p in playerObjects)
+            {
+                p.Value.SetNameClientRpc(playerNames[p.Key]);
+            }
+        }
+    }
     
     // Client Rpcs
 
@@ -74,6 +95,16 @@ public class NetworkServer : NetworkBehaviour
                 {
                     keyValuePair.Value.PlacePlayerClientRpc(index, playerObjects.Count, GameManager.Main.tableCenter.position);
                     index++;
+                }
+
+                if (IsHost)
+                {
+                    playerNames[clientId] = GameManager.Main.playerName;
+                
+                    foreach (var p in playerObjects)
+                    {
+                        p.Value.SetNameClientRpc(playerNames[p.Key]);
+                    }
                 }
             }
         }

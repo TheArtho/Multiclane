@@ -77,6 +77,8 @@ public class PlayerManager : NetworkBehaviour
     [Space] 
     
     [SerializeField] 
+    private string playerName;
+    [SerializeField] 
     private int playerId;
     [SerializeField]
     private Roles role;
@@ -124,6 +126,17 @@ public class PlayerManager : NetworkBehaviour
     public void PingClientRpc()
     {
         Debug.Log($"Ping.");
+    }
+
+    [ClientRpc]
+    public void SetNameClientRpc(string name)
+    {
+        playerName = name;
+
+        if (IsOwner)
+        {
+            GameManager.Main.playerNameInfo.text = "Username: " + playerName;
+        }
     }
 
     [ClientRpc]

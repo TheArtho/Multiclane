@@ -41,8 +41,7 @@ public class GameConsole : MonoBehaviour
 
         _inputAction.Console.Toggle.performed += ctx =>
         {
-            _opened = !_opened;
-            ToggleConsole(_opened);
+            ToggleConsole(!_opened);
         };
 
         _inputAction.Console.Send.performed += ctx => OnInputSubmitted();
@@ -66,8 +65,10 @@ public class GameConsole : MonoBehaviour
         }
     }
 
-    private void ToggleConsole(bool value)
+    public void ToggleConsole(bool value)
     {
+        _opened = value;
+        
         console.GetComponent<CanvasGroup>().alpha = value ? 1 : 0;
 
         if (value)
@@ -135,6 +136,7 @@ public class GameConsole : MonoBehaviour
 
     public static void Print(string message)
     {
+        Debug.Log(message);
         GameConsole.Main.AppendToOutput(GameConsole.Main.Echo(message));
 
         if (NetworkManager.Singleton.IsServer)
