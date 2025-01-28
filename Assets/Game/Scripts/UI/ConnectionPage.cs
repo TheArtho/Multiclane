@@ -71,6 +71,18 @@ public class ConnectionPage : MonoBehaviour
     
     public void Create()
     {
+        if (!string.IsNullOrEmpty(username.text.Trim()))
+        {
+            PlayerPrefs.SetString("username", username.text.Trim());
+        }
+        
+        if (!string.IsNullOrEmpty(server_port.text.Trim()))
+        {
+            PlayerPrefs.SetString("server_port", server_port.text.Trim());
+        }
+        
+        PlayerPrefs.Save();
+        
         GameManager.Main.playerName = string.IsNullOrEmpty(username.text.Trim())
             ? GetRandomUsername(GenerateFunnyUsernames())
             : username.text.Trim();
@@ -79,6 +91,23 @@ public class ConnectionPage : MonoBehaviour
 
     public void Join()
     {
+        if (!string.IsNullOrEmpty(username.text.Trim()))
+        {
+            PlayerPrefs.SetString("username", username.text.Trim());
+        }
+        
+        if (!string.IsNullOrEmpty(join_addres.text.Trim()))
+        {
+            PlayerPrefs.SetString("join_addres", join_addres.text.Trim());
+        }
+        
+        if (!string.IsNullOrEmpty(join_port.text.Trim()))
+        {
+            PlayerPrefs.SetString("join_port", join_port.text.Trim());
+        }
+        
+        PlayerPrefs.Save();
+        
         GameManager.Main.playerName = string.IsNullOrEmpty(username.text.Trim())
             ? GetRandomUsername(GenerateFunnyUsernames())
             : username.text.Trim();

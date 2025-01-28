@@ -117,6 +117,7 @@ public class NetworkServer : NetworkBehaviour
             Debug.Log($"Player {clientId} déconnecté.");
 
             playerObjects.Remove(clientId);
+            GameConsole.Print($"{playerNames[clientId]} left the game.");
         }
     }
 }
