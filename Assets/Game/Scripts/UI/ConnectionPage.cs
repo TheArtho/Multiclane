@@ -43,6 +43,11 @@ public class ConnectionPage : MonoBehaviour
                 GameConsole.Main.ToggleConsole(false);
             }
         };
+
+        username.text = PlayerPrefs.GetString("username");
+        join_addres.text = PlayerPrefs.GetString("join_address");
+        join_port.text = PlayerPrefs.GetString("join_port");
+        server_port.text = PlayerPrefs.GetString("server_port");
     }
 
     public void ShowMenuPage()
@@ -71,6 +76,16 @@ public class ConnectionPage : MonoBehaviour
     
     public void Create()
     {
+        StartCoroutine(CreateServer());
+    }
+
+    IEnumerator CreateServer()
+    {
+        if (NetworkManager.Singleton.IsClient)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+        
         if (!string.IsNullOrEmpty(username.text.Trim()))
         {
             PlayerPrefs.SetString("username", username.text.Trim());
@@ -83,6 +98,11 @@ public class ConnectionPage : MonoBehaviour
         
         PlayerPrefs.Save();
         
+        while (NetworkManager.Singleton.ShutdownInProgress)
+        {
+            yield return null;
+        }
+        
         GameManager.Main.playerName = string.IsNullOrEmpty(username.text.Trim())
             ? GetRandomUsername(GenerateFunnyUsernames())
             : username.text.Trim();
@@ -91,6 +111,16 @@ public class ConnectionPage : MonoBehaviour
 
     public void Join()
     {
+        StartCoroutine(Connect());
+    }
+
+    IEnumerator Connect()
+    {
+        if (NetworkManager.Singleton.IsClient)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+        
         if (!string.IsNullOrEmpty(username.text.Trim()))
         {
             PlayerPrefs.SetString("username", username.text.Trim());
@@ -98,7 +128,7 @@ public class ConnectionPage : MonoBehaviour
         
         if (!string.IsNullOrEmpty(join_addres.text.Trim()))
         {
-            PlayerPrefs.SetString("join_addres", join_addres.text.Trim());
+            PlayerPrefs.SetString("join_address", join_addres.text.Trim());
         }
         
         if (!string.IsNullOrEmpty(join_port.text.Trim()))
@@ -107,6 +137,11 @@ public class ConnectionPage : MonoBehaviour
         }
         
         PlayerPrefs.Save();
+
+        while (NetworkManager.Singleton.ShutdownInProgress)
+        {
+            yield return null;
+        }
         
         GameManager.Main.playerName = string.IsNullOrEmpty(username.text.Trim())
             ? GetRandomUsername(GenerateFunnyUsernames())
