@@ -176,6 +176,7 @@ public class GameConsole : MonoBehaviour
                 break;
             case "stop":
                 GameManager.Main.StopServer();
+                GameManager.Main.connectionPage.QuitGame();
                 break;
         }
     }
@@ -190,6 +191,7 @@ public class GameConsole : MonoBehaviour
                 break;
             case "stop":
                 GameManager.Main.StopClient();
+                GameManager.Main.connectionPage.QuitGame();
                 break;
         }
     }

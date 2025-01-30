@@ -37,17 +37,22 @@ public class ConnectionPage : MonoBehaviour
         };
         NetworkManager.Singleton.OnClientDisconnectCallback += (clientId) =>
         {
-            if (clientId == NetworkManager.Singleton.LocalClientId)
-            {
-                ShowMenu();
-                GameConsole.Main.ToggleConsole(false);
-            }
+            Debug.Log($"[OnClientDisconnectCallback] Server shut down.");
+            QuitGame();
         };
 
         username.text = PlayerPrefs.GetString("username");
         join_addres.text = PlayerPrefs.GetString("join_address");
         join_port.text = PlayerPrefs.GetString("join_port");
         server_port.text = PlayerPrefs.GetString("server_port");
+    }
+
+    public void QuitGame()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        ShowMenu();
+        GameConsole.Main.ToggleConsole(false);
     }
 
     public void ShowMenuPage()

@@ -17,6 +17,7 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI playerNameInfo;
     
     public NetworkServer networkServer;
+    public ConnectionPage connectionPage;
 
     public Material NeutralWireMaterial;
     public Material GreenWireMaterial;

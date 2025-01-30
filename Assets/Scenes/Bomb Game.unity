@@ -4004,6 +4004,7 @@ MonoBehaviour:
   roleInfo: {fileID: 1163508137}
   playerNameInfo: {fileID: 109903371}
   networkServer: {fileID: 1427083158}
+  connectionPage: {fileID: 1694030827}
   NeutralWireMaterial: {fileID: 2100000, guid: 0dd3259cf5068b3458d601db3489c5ea, type: 2}
   GreenWireMaterial: {fileID: 2100000, guid: 29804b4ba219fe04b92d535728910f89, type: 2}
   RedWireMaterial: {fileID: 2100000, guid: 9a61679069f50e44a8667ecd65249d36, type: 2}
