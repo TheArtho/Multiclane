@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 22143708}
   - component: {fileID: 22143709}
   m_Layer: 0
-  m_Name: Mallet Player
+  m_Name: Case Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1000,7 +1000,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac1f668d6548f2f48b4f2eda4885946a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mallet: {fileID: 22143709}
+  suitcase: {fileID: 22143709}
   playerHeadController: {fileID: 8803851297419257604}
   mesh: {fileID: 4879133676343680425}
   playerName: 

@@ -5,6 +5,7 @@ using Unity.Netcode;
 using Unity.Networking.Transport;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class PlayerManager : NetworkBehaviour
 {
@@ -68,7 +69,7 @@ public class PlayerManager : NetworkBehaviour
 
 
     [SerializeField]
-    private Mallet mallet;
+    private Suitcase suitcase;
     [SerializeField] 
     private GameObject playerHeadController;
     [SerializeField]
@@ -149,7 +150,7 @@ public class PlayerManager : NetworkBehaviour
     public void ReceiveVisibleInfoClientRpc(int remainingTurns, int playerId, Wires[] wiresArray, ClientRpcParams clientRpcParams = default)
     {
         this.playerId = playerId;
-        UpdateMalletWires(remainingTurns, new List<Wires>(wiresArray));
+        UpdateSuitcaseWires(remainingTurns, new List<Wires>(wiresArray));
         this.remainingTurns = remainingTurns;
     }
 
@@ -190,7 +191,7 @@ public class PlayerManager : NetworkBehaviour
         this.remainingRoundWire = data.remainingRoundWire;
         this.playerCutter = data.playerCutter;
         this.mode = data.mode;
-        UpdateMallet();
+        UpdateSuitcase();
         
 
         // Code Owner only
@@ -201,7 +202,7 @@ public class PlayerManager : NetworkBehaviour
         }
     }
 
-    void UpdateMalletWires(int remainingTurns, List<Wires> visibleWires)
+    void UpdateSuitcaseWires(int remainingTurns, List<Wires> visibleWires)
     {
         // Update des fils visibles
         if (this.remainingTurns != remainingTurns)
@@ -209,16 +210,16 @@ public class PlayerManager : NetworkBehaviour
             wireObjects.Clear();
             
             // Régénère tous les fils si le round a changé
-            while (mallet.AllWires.transform.childCount > 0)
+            while (suitcase.AllWires.transform.childCount > 0)
             {
-                DestroyImmediate(mallet.AllWires.transform.GetChild(0).gameObject);
+                DestroyImmediate(suitcase.AllWires.transform.GetChild(0).gameObject);
             }
 
             if (visibleWires != null)
             {
                 for (int i = 0; i < visibleWires.Count; i++)
                 {
-                    var go = GameObject.Instantiate(wirePrefab, mallet.AllWires.transform);
+                    var go = GameObject.Instantiate(wirePrefab, suitcase.AllWires.transform);
                     Wire wireComponent = go.GetComponent<Wire>();
                     wireComponent.player = this;
                     wireComponent.id = i;
@@ -230,7 +231,7 @@ public class PlayerManager : NetworkBehaviour
                     }
                 }
                 
-                PlaceObjectsInLine(wireObjects, mallet.spacing);
+                PlaceObjectsInLine(wireObjects, suitcase.spacing);
             }
         }
         
@@ -247,14 +248,14 @@ public class PlayerManager : NetworkBehaviour
         }
     }
 
-    void UpdateMallet()
+    void UpdateSuitcase()
     {
         // Update des montants des fils
         string neutral = wireAmount.NeutralWires > 0 ? $"{wireAmount.NeutralWires} Neutre" + (wireAmount.NeutralWires > 1 ? "s" : "") : "";
         string green = wireAmount.GreenWires > 0 ? $"{wireAmount.GreenWires} Vert" + (wireAmount.GreenWires > 1 ? "s" : "") : "";
         string red = wireAmount.RedWires > 0 ? $"{wireAmount.RedWires} Rouge" + (wireAmount.RedWires > 1 ? "s" : "") : "";
 
-        mallet.Text.text = neutral + "\n" + green + "\n" + red;
+        suitcase.Text.text = neutral + "\n" + green + "\n" + red;
     }
 
     public void PlaceObjectsInLine(List<Wire> objectsToPlace, float spacing)
