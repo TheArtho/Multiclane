@@ -219,7 +219,7 @@ public class GameConsole : MonoBehaviour
     [ConsoleCommand("choose", "(ServerSide) Choose a player to cut next")]
     public string RequestChoosePlayerCommand(string playerId, string chosenPlayer)
     {
-        MatchManager.Main.RequestChoosePlayer(int.Parse(playerId), int.Parse(chosenPlayer));
+        MatchManager.Main.RequestChoosePlayer(ulong.Parse(playerId), int.Parse(chosenPlayer));
 
         return $"[Player {playerId}] Player {chosenPlayer} has been chosen.";
     }
@@ -227,7 +227,7 @@ public class GameConsole : MonoBehaviour
     [ConsoleCommand("cut", "(ServerSide) Choose a wire to cut")]
     public string RequestCutWireCommand(string playerId, string wireIndex)
     {
-        MatchManager.Main.RequestCutWire(int.Parse(playerId), int.Parse(wireIndex));
+        MatchManager.Main.RequestCutWire(ulong.Parse(playerId), int.Parse(wireIndex));
         
         return $"[Player {playerId}] Wire {wireIndex} has been chosen.";
     }

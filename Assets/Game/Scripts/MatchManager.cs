@@ -442,12 +442,14 @@ public class MatchManager : MonoBehaviour
         {
             // Saboteurs win
             endCondition = EndCondition.BombExploded;
+            winners = Roles.Saboteur;
             return false;
         }
         else if (RemainingGreenWires <= 0)
         {
             // Survivors win
             endCondition = EndCondition.BombDefused;
+            winners = Roles.Survivor;
             return false;
         }
         else if (RemainingRoundWires <= 0)
@@ -473,6 +475,7 @@ public class MatchManager : MonoBehaviour
         {
             // Saboteurs win
             endCondition = EndCondition.TimesUp;
+            winners = Roles.Saboteur;
             return false;
         }
         
@@ -491,7 +494,7 @@ public class MatchManager : MonoBehaviour
             PlayerData newPlayer = new PlayerData
             {
                 id = (int) playerIdList[i],
-                name = "Player " + (i),
+                name = GameManager.Main.networkServer.playerNames[playerIdList[i]],
                 role = AllRoles[i],
                 wires = SetPlayerWires(i, wirePerPlayer),
                 visibleWires = Enumerable.Repeat(Wires.Unknown, wirePerPlayer).ToList(),
@@ -505,7 +508,16 @@ public class MatchManager : MonoBehaviour
 
     private void SendPlayerData(PlayerManager.PlayerNetworkData data)
     {
-        playerManagerList[data.playerId].ReceivePrivatePlayerDataClientRpc(data);
+        ClientRpcParams clientRpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new ulong[] { playerIdList[data.playerId] }
+            }
+        };
+        
+        playerManagerList[data.playerId].ReceivePrivatePlayerDataClientRpc(data, clientRpcParams);
+        playerManagerList[data.playerId].ReceiveVisibleInfoClientRpc(data.remainingTurns, (int) data.playerId, data.visibleWires);
         //playerManagerList[data.playerId].ReceivePlayerData(data);
     }
     
@@ -524,7 +536,7 @@ public class MatchManager : MonoBehaviour
             
             PlayerManager.PlayerNetworkData data = new PlayerManager.PlayerNetworkData
             {
-                playerId = (int) playerIdList[i],
+                playerId = i,
                 remainingTurns = maxTurn - turnCount,
                 role = players[i].role,
                 neutralAmount = wireAmount.NeutralWires,
@@ -541,8 +553,10 @@ public class MatchManager : MonoBehaviour
         }
     }
     
-    public void RequestChoosePlayer(int playerId, int chosenPlayerId)
+    public void RequestChoosePlayer(ulong clientId, int chosenPlayerId)
     {
+        int playerId = playerIdList.IndexOf(clientId);
+        
         if (state != State.WaitingForPlayer)
         {
             throw new Exception($"Server is not waiting for this request: cut {playerId} {chosenPlayerId}");
@@ -570,8 +584,10 @@ public class MatchManager : MonoBehaviour
         chooseRequest = new ChooseRequest(playerId, chosenPlayerId);
     }
     
-    public void RequestCutWire(int playerId, int wireIndex)
+    public void RequestCutWire(ulong clientId, int wireIndex)
     {
+        int playerId = playerIdList.IndexOf(clientId);
+        
         if (state != State.WaitingForWire)
         {
             throw new Exception($"Server is not waiting for this request: cut {playerId} {wireIndex}");

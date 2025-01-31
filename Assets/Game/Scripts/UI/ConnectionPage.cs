@@ -37,7 +37,11 @@ public class ConnectionPage : MonoBehaviour
         };
         NetworkManager.Singleton.OnClientDisconnectCallback += (clientId) =>
         {
-            Debug.Log($"[OnClientDisconnectCallback] Server shut down.");
+            Debug.Log($"[OnClientDisconnectCallback] Client {clientId} disconnected.");
+            if (NetworkManager.Singleton.IsConnectedClient)
+            {
+                NetworkManager.Singleton.Shutdown();
+            }
             QuitGame();
         };
 

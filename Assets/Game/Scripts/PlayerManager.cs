@@ -77,7 +77,7 @@ public class PlayerManager : NetworkBehaviour
     [Space] 
     
     [SerializeField] 
-    private string playerName;
+    public string playerName;
     [SerializeField] 
     private int playerId;
     [SerializeField]
@@ -110,14 +110,14 @@ public class PlayerManager : NetworkBehaviour
     private void ClientChoosePlayerRequestServerRpc(int chosenPlayer, ServerRpcParams serverRpcParams = default)
     {
         var clientId = serverRpcParams.Receive.SenderClientId;
-        MatchManager.Main.RequestChoosePlayer((int) clientId, chosenPlayer);
+        MatchManager.Main.RequestChoosePlayer(clientId, chosenPlayer);
     }
     
     [ServerRpc(RequireOwnership = false)]
     private void ClientChooseWireRequestServerRpc(int chosenPlayer, ServerRpcParams serverRpcParams = default)
     {
         var clientId = serverRpcParams.Receive.SenderClientId;
-        MatchManager.Main.RequestCutWire((int) clientId, chosenPlayer);
+        MatchManager.Main.RequestCutWire(clientId, chosenPlayer);
     }
     
     // Client RPCs
@@ -144,6 +144,14 @@ public class PlayerManager : NetworkBehaviour
     {
         ReceivePlayerData(data);
     }
+    
+    [ClientRpc]
+    public void ReceiveVisibleInfoClientRpc(int remainingTurns, int playerId, Wires[] wiresArray, ClientRpcParams clientRpcParams = default)
+    {
+        this.playerId = playerId;
+        UpdateMalletWires(remainingTurns, new List<Wires>(wiresArray));
+        this.remainingTurns = remainingTurns;
+    }
 
     [ClientRpc]
     public void PlacePlayerClientRpc(int playerIndex, int totalPlayers, Vector3 centerPosition)
@@ -167,11 +175,9 @@ public class PlayerManager : NetworkBehaviour
             playerHeadController.SetActive(false);
         }
     }
-
+    
     public void ReceivePlayerData(PlayerNetworkData data)
     {
-        List<Wires> visibleWires = new List<Wires>(data.visibleWires);
-        
         this.playerId = data.playerId;
         this.wireAmount = new WireAmount()
         {
@@ -184,26 +190,19 @@ public class PlayerManager : NetworkBehaviour
         this.remainingRoundWire = data.remainingRoundWire;
         this.playerCutter = data.playerCutter;
         this.mode = data.mode;
-        UpdateMallet(data.remainingTurns, visibleWires);
-        this.remainingTurns = data.remainingTurns;
+        UpdateMallet();
+        
 
         // Code Owner only
         if (IsOwner)
         {
             GameManager.Main.playerMode = this.mode;
-            GameManager.UpdateInfo(remainingTurns, remainingGreen, remainingRoundWire, this.role);
+            GameManager.UpdateInfo(data.remainingTurns, remainingGreen, remainingRoundWire, this.role);
         }
     }
 
-    void UpdateMallet(int remainingTurns, List<Wires> visibleWires)
+    void UpdateMalletWires(int remainingTurns, List<Wires> visibleWires)
     {
-        // Update des montants des fils
-        string neutral = wireAmount.NeutralWires > 0 ? $"{wireAmount.NeutralWires} Neutre" + (wireAmount.NeutralWires > 1 ? "s" : "") : "";
-        string green = wireAmount.GreenWires > 0 ? $"{wireAmount.GreenWires} Vert" + (wireAmount.GreenWires > 1 ? "s" : "") : "";
-        string red = wireAmount.RedWires > 0 ? $"{wireAmount.RedWires} Rouge" + (wireAmount.RedWires > 1 ? "s" : "") : "";
-
-        mallet.Text.text = neutral + "\n" + green + "\n" + red;
-        
         // Update des fils visibles
         if (this.remainingTurns != remainingTurns)
         {
@@ -246,6 +245,16 @@ public class PlayerManager : NetworkBehaviour
         {
             throw new Exception("Visible wire data doesn't match.");
         }
+    }
+
+    void UpdateMallet()
+    {
+        // Update des montants des fils
+        string neutral = wireAmount.NeutralWires > 0 ? $"{wireAmount.NeutralWires} Neutre" + (wireAmount.NeutralWires > 1 ? "s" : "") : "";
+        string green = wireAmount.GreenWires > 0 ? $"{wireAmount.GreenWires} Vert" + (wireAmount.GreenWires > 1 ? "s" : "") : "";
+        string red = wireAmount.RedWires > 0 ? $"{wireAmount.RedWires} Rouge" + (wireAmount.RedWires > 1 ? "s" : "") : "";
+
+        mallet.Text.text = neutral + "\n" + green + "\n" + red;
     }
 
     public void PlaceObjectsInLine(List<Wire> objectsToPlace, float spacing)
@@ -314,5 +323,20 @@ public class PlayerManager : NetworkBehaviour
 
         // Appliquer la rotation au joueur
         playerTransform.eulerAngles = new Vector3(0, rotation.eulerAngles.y, 0);
+    }
+
+    public void ShowTargetName()
+    {
+        SetTargetName(this.playerName);
+    }
+    
+    public void HideTargetName()
+    {
+        SetTargetName();
+    }
+
+    private void SetTargetName(string name = "")
+    {
+        GameManager.Main.targetNameInfo.text = name;
     }
 }

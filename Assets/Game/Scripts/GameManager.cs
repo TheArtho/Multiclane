@@ -15,6 +15,7 @@ public class GameManager : MonoBehaviour
     [FormerlySerializedAs("score")] public TextMeshProUGUI info;
     public TextMeshProUGUI roleInfo;
     public TextMeshProUGUI playerNameInfo;
+    public TextMeshProUGUI targetNameInfo;
     
     public NetworkServer networkServer;
     public ConnectionPage connectionPage;

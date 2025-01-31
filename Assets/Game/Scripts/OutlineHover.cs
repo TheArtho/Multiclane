@@ -34,9 +34,10 @@ public class OutlineHover : MonoBehaviour
 
     public void Hover()
     {
+        onHover.Invoke();
+        
         if (GameManager.Main.playerMode != modeFilter) return;
         
-        onHover.Invoke();
         SetOutlineActive(true);
     }
 
@@ -50,7 +51,7 @@ public class OutlineHover : MonoBehaviour
     {
         if (GameManager.Main.playerMode != modeFilter)
         {
-            Leave();
+            SetOutlineActive(false);
         }
     }
 
