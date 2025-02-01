@@ -179,7 +179,7 @@ public class MatchManager : MonoBehaviour
         StartNextTurn(turnCount, false);
         // Force the first player to choose another player
         players[playerSelected].mode = PlayerManager.Mode.ChoosePlayer;
-        SendAllPlayerData();
+        SendAllPlayerData(false);
         
         StartCoroutine(GameLoop());
     }
@@ -189,7 +189,7 @@ public class MatchManager : MonoBehaviour
         GameConsole.Print($"Game Started with {AllWires.Count} wires.");
         
         // For each round
-        while (endCondition == EndCondition.None && CheckEndGame())
+        while (CheckEndGame())
         {
             GameConsole.Print($"\n####Turn {turnCount + 1}####\n");
             
@@ -227,24 +227,44 @@ public class MatchManager : MonoBehaviour
                 }
                 // Process the choice
                 ProcessChosenWire(wireRequest.playerId, wireRequest.choosenWireIndex);
-                
-                for (int i = 0; i < players.Count; i++)
+                CheckEndRound();
+
+                if (endCondition == EndCondition.None)
                 {
-                    players[i].mode = CalculatePlayerMode(i);
+                    for (int i = 0; i < players.Count; i++)
+                    {
+                        players[i].mode = CalculatePlayerMode(i);
+                    }
+                
+                    SendAllPlayerData();
+                    state = State.Idle;
+                
+                    // Reset the requests
+                    chooseRequest = null;
+                    wireRequest = null;
+
+                    UpdateAllWires();
+                }
+                else
+                {
+                    state = State.Idle;
+                    
+                    for (int i = 0; i < players.Count; i++)
+                    {
+                        players[i].mode = PlayerManager.Mode.Spectate;
+                    }
+                    SendAllPlayerData();
                 }
                 
-                SendAllPlayerData();
-                state = State.Idle;
-                
-                // Reset the requests
-                chooseRequest = null;
-                wireRequest = null;
-
-                UpdateAllWires();
-
                 yield return new WaitForSeconds(1);
             }
-
+            
+            // Si le jeu est terminé alors on skip le setup du prochain tour
+            if (CheckEndGame())
+            {
+                break;
+            }
+            
             wirePerPlayer--;
             turnCount++;
             // Mélanger les fils
@@ -464,12 +484,6 @@ public class MatchManager : MonoBehaviour
 
     private bool CheckEndGame()
     {
-        // Game has already ended
-        if (endCondition != EndCondition.None)
-        {
-            return false;
-        }
-        
         // Time is up, not round left
         if (turnCount >= maxTurn)
         {
@@ -517,11 +531,18 @@ public class MatchManager : MonoBehaviour
         };
         
         playerManagerList[data.playerId].ReceivePrivatePlayerDataClientRpc(data, clientRpcParams);
+    }
+
+    private void SendVisibleData(PlayerManager.PlayerNetworkData data)
+    {
         playerManagerList[data.playerId].ReceiveVisibleInfoClientRpc(data.remainingTurns, (int) data.playerId, data.visibleWires);
-        //playerManagerList[data.playerId].ReceivePlayerData(data);
     }
     
-    private void SendAllPlayerData()
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="onlySelectedPlayer">If true, updates only the visible data of the last selected played</param>
+    private void SendAllPlayerData(bool onlySelectedPlayer = true)
     {
         List<List<Wires>> allVisibleWires = new List<List<Wires>>();
 
@@ -550,6 +571,17 @@ public class MatchManager : MonoBehaviour
             };
             
             SendPlayerData(data);
+            if (onlySelectedPlayer)
+            {
+                if (playerSelected == i)
+                {
+                    SendVisibleData(data);
+                }
+            }
+            else
+            {
+                SendVisibleData(data);
+            }
         }
     }
     
