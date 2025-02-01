@@ -44,6 +44,7 @@ public class PlayerManager : NetworkBehaviour
         public int playerCutter;
         public Mode mode;
         public Wires[] visibleWires;
+        public int selectedPlayer;
         
         // Implémentation de la sérialisation des données
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -57,6 +58,7 @@ public class PlayerManager : NetworkBehaviour
             serializer.SerializeValue(ref remainingGreen);
             serializer.SerializeValue(ref remainingRoundWire);
             serializer.SerializeValue(ref playerCutter);
+            serializer.SerializeValue(ref selectedPlayer);
             
             // Sérialisation de tableaux
             serializer.SerializeValue(ref visibleWires);
@@ -74,6 +76,8 @@ public class PlayerManager : NetworkBehaviour
     private GameObject playerHeadController;
     [SerializeField]
     private GameObject mesh;
+    [SerializeField] 
+    private Transform wireCutterHolder;
 
     [Space] 
     
@@ -93,6 +97,9 @@ public class PlayerManager : NetworkBehaviour
     private int remainingGreen;
     [SerializeField] 
     private int remainingRoundWire;
+    
+    public int PlayerId => playerId;
+    public Mode PlayerMode => mode;
 
     [Space] 
     
@@ -147,11 +154,17 @@ public class PlayerManager : NetworkBehaviour
     }
     
     [ClientRpc]
-    public void ReceiveVisibleInfoClientRpc(int remainingTurns, int playerId, Wires[] wiresArray, ClientRpcParams clientRpcParams = default)
+    public void ReceiveVisibleInfoClientRpc(int remainingTurns, int playerId, Mode mode, Wires[] wiresArray, ClientRpcParams clientRpcParams = default)
     {
         this.playerId = playerId;
         UpdateSuitcaseWires(remainingTurns, new List<Wires>(wiresArray));
         this.remainingTurns = remainingTurns;
+    }
+    
+    [ClientRpc]
+    public void ReceiveModeClientRpc(Mode mode, ClientRpcParams clientRpcParams = default)
+    {
+        this.mode = mode;
     }
 
     [ClientRpc]
@@ -179,7 +192,9 @@ public class PlayerManager : NetworkBehaviour
     
     public void ReceivePlayerData(PlayerNetworkData data)
     {
-        this.playerId = data.playerId;
+        // Code Owner only
+        if (!IsOwner) return;
+        
         this.wireAmount = new WireAmount()
         {
             NeutralWires = data.neutralAmount,
@@ -193,13 +208,9 @@ public class PlayerManager : NetworkBehaviour
         this.mode = data.mode;
         UpdateSuitcase();
         
-
-        // Code Owner only
-        if (IsOwner)
-        {
-            GameManager.Main.playerMode = this.mode;
-            GameManager.UpdateInfo(data.remainingTurns, remainingGreen, remainingRoundWire, this.role);
-        }
+        GameManager.Main.playerMode = this.mode;
+        GameManager.UpdateInfo(data.remainingTurns, remainingGreen, remainingRoundWire, this.role);
+        GameManager.Main.selectedPlayer = data.selectedPlayer;
     }
 
     void UpdateSuitcaseWires(int remainingTurns, List<Wires> visibleWires)

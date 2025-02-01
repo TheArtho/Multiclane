@@ -10,6 +10,7 @@ public class GameManager : MonoBehaviour
 
     public string playerName;
     public int playerId;
+    public int selectedPlayer;
     public PlayerManager.Mode playerMode = PlayerManager.Mode.Spectate;
     
     [FormerlySerializedAs("score")] public TextMeshProUGUI info;

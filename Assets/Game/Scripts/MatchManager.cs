@@ -189,7 +189,7 @@ public class MatchManager : MonoBehaviour
         GameConsole.Print($"Game Started with {AllWires.Count} wires.");
         
         // For each round
-        while (CheckEndGame())
+        while (endCondition == EndCondition.None && CheckEndGame())
         {
             GameConsole.Print($"\n####Turn {turnCount + 1}####\n");
             
@@ -254,13 +254,17 @@ public class MatchManager : MonoBehaviour
                         players[i].mode = PlayerManager.Mode.Spectate;
                     }
                     SendAllPlayerData();
+                    
+                    // Reset the requests
+                    chooseRequest = null;
+                    wireRequest = null;
                 }
                 
                 yield return new WaitForSeconds(1);
             }
             
             // Si le jeu est terminé alors on skip le setup du prochain tour
-            if (CheckEndGame())
+            if (endCondition != EndCondition.None && CheckEndGame())
             {
                 break;
             }
@@ -535,7 +539,12 @@ public class MatchManager : MonoBehaviour
 
     private void SendVisibleData(PlayerManager.PlayerNetworkData data)
     {
-        playerManagerList[data.playerId].ReceiveVisibleInfoClientRpc(data.remainingTurns, (int) data.playerId, data.visibleWires);
+        playerManagerList[data.playerId].ReceiveVisibleInfoClientRpc(data.remainingTurns, (int) data.playerId, data.mode, data.visibleWires);
+    }
+    
+    private void SendMode(int playerId, PlayerManager.Mode mode)
+    {
+        playerManagerList[playerId].ReceiveModeClientRpc(mode);
     }
     
     /// <summary>
@@ -567,10 +576,12 @@ public class MatchManager : MonoBehaviour
                 remainingRoundWire = RemainingRoundWires,
                 playerCutter = playerSelected,
                 mode = players[i].mode,
-                visibleWires = allVisibleWires[i].ToArray()
+                visibleWires = allVisibleWires[i].ToArray(),
+                selectedPlayer = playerSelected
             };
             
             SendPlayerData(data);
+            SendMode(i, data.mode);
             if (onlySelectedPlayer)
             {
                 if (playerSelected == i)
