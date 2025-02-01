@@ -194,7 +194,7 @@ public class MatchManager : MonoBehaviour
             GameConsole.Print($"\n####Turn {turnCount + 1}####\n");
             
             // For each player turn
-            while (CheckEndRound())
+            while (endCondition == EndCondition.None)
             {
                 // Select player to cut
                 state = State.WaitingForPlayer;
