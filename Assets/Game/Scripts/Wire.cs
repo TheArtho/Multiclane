@@ -83,6 +83,5 @@ public class Wire : MonoBehaviour
     public void Select()
     {
         player.ChooseWire(id);
-        Debug.Log("Click!");
     }
 }

@@ -4125,6 +4125,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerName: 
   playerId: 0
+  selectedPlayer: -1
   playerMode: 0
   info: {fileID: 44073211}
   roleInfo: {fileID: 1163508137}

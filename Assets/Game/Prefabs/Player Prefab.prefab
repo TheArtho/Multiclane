@@ -268,14 +268,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1424889761}
-  m_LocalRotation: {x: 0.32823795, y: -0, z: -0, w: 0.94459516}
-  m_LocalPosition: {x: 0, y: 0.634, z: 0.612}
+  m_LocalRotation: {x: 0.19364, y: -0, z: -0, w: 0.9810727}
+  m_LocalPosition: {x: -0, y: 0.691, z: 0.64}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 22143708}
   m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 38.324, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 22.331, y: 0, z: 0}
 --- !u!1 &1472771076
 GameObject:
   m_ObjectHideFlags: 0
@@ -448,6 +448,37 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 1472771079}
   m_maskType: 0
+--- !u!1 &2747047239553027919
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5394071505969448497}
+  m_Layer: 0
+  m_Name: Wire Cutter Position
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5394071505969448497
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2747047239553027919}
+  m_LocalRotation: {x: 0, y: 0.89715433, z: 0, w: 0.44171727}
+  m_LocalPosition: {x: 1.009, y: -1.647, z: 0.646}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4680927567200459325}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 127.573, z: 0}
 --- !u!1 &4680927565927710862
 GameObject:
   m_ObjectHideFlags: 0
@@ -1017,7 +1048,7 @@ Transform:
   - {fileID: 581118192761332967}
   - {fileID: 5506239522093657637}
   - {fileID: 22143708}
-  - {fileID: 1393897825342668671}
+  - {fileID: 5394071505969448497}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1036,7 +1067,7 @@ MonoBehaviour:
   suitcase: {fileID: 22143709}
   playerHeadController: {fileID: 8803851297419257604}
   mesh: {fileID: 4879133676343680425}
-  wireCutterHolder: {fileID: 1393897825342668671}
+  wireCutterHolder: {fileID: 0}
   playerName: 
   playerId: 0
   role: 0
@@ -1313,37 +1344,6 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 3.04, z: 1}
   m_Center: {x: 0, y: -0.72, z: 0}
---- !u!1 &7766275470373075207
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1393897825342668671}
-  m_Layer: 0
-  m_Name: Wire Cutter Holder
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1393897825342668671
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7766275470373075207}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4680927567200459325}
-  m_RootOrder: 4
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8803851297419257604
 GameObject:
   m_ObjectHideFlags: 0
@@ -1452,5 +1452,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerManager: {fileID: 1744942017524207191}
   cameraTransform: {fileID: 4680927565927710863}
+  wireCutterPositionTransform: {fileID: 5394071505969448497}
   maxDistance: 2
   moveSpeed: 5

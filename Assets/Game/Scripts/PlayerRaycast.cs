@@ -10,6 +10,8 @@ public class PlayerRaycast : MonoBehaviour
     private PlayerManager playerManager;
     [SerializeField]
     private Transform cameraTransform;
+    [SerializeField]
+    private Transform wireCutterPositionTransform;
     
     [Space]
     public float maxDistance = 2.0f;
@@ -65,13 +67,13 @@ public class PlayerRaycast : MonoBehaviour
             Vector3 wireCutterRotation = wireCutter.transform.eulerAngles;
             wireCutter.transform.rotation = Quaternion.Euler(wireCutterRotation.x, cameraTransform.transform.eulerAngles.y, wireCutterRotation.z);
         }
-        /*
-        else
+        else if (GameManager.Main.selectedPlayer == playerManager.PlayerId)
         {
-            Vector3 centerPosition = new Vector3(0, -1.88f, 0);
+            wireCutter.transform.position = Vector3.Lerp(wireCutter.transform.position, wireCutterPositionTransform.position, moveSpeed * Time.deltaTime);
             
-            wireCutter.transform.position = Vector3.Lerp(wireCutter.transform.position, centerPosition, moveSpeed * Time.deltaTime);
+            // Faire matcher la rotation Y avec celle de la caméra
+            Vector3 wireCutterRotation = wireCutter.transform.eulerAngles;
+            wireCutter.transform.rotation = Quaternion.Euler(wireCutterRotation.x, wireCutterPositionTransform.eulerAngles.y, wireCutterRotation.z);
         }
-        */
     }
 }
