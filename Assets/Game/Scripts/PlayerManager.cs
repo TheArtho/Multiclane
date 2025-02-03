@@ -189,8 +189,8 @@ public class PlayerManager : NetworkBehaviour
             playerHeadController.SetActive(false);
         }
     }
-    
-    public void ReceivePlayerData(PlayerNetworkData data)
+
+    private void ReceivePlayerData(PlayerNetworkData data)
     {
         // Code Owner only
         if (!IsOwner) return;
@@ -209,8 +209,8 @@ public class PlayerManager : NetworkBehaviour
         UpdateSuitcase();
         
         GameManager.Main.playerMode = this.mode;
-        GameManager.UpdateInfo(data.remainingTurns, remainingGreen, remainingRoundWire, this.role);
         GameManager.Main.selectedPlayer = data.selectedPlayer;
+        GameManager.UpdateInfo(remainingTurns, remainingGreen, remainingRoundWire, this.role);
     }
 
     void UpdateSuitcaseWires(int remainingTurns, List<Wires> visibleWires)

@@ -97,8 +97,7 @@ public class GameManager : MonoBehaviour
 
     public static void UpdateInfo(int remainingTurns, int remainingGreen, int remainingRoundWire, Roles role)
     {
-        Main.info.text = $"Remaining Rounds : {remainingTurns}\n";
-        Main.info.text += $"Remaining Wires in round : {remainingRoundWire}\n";
+        Main.info.text = $"Remaining Wires in round : {remainingRoundWire}\n";
         Main.info.text += $"Remaining Green Wires : {remainingGreen}";
 
         if (role == Roles.Survivor)

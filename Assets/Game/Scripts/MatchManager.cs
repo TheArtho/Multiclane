@@ -275,7 +275,7 @@ public class MatchManager : MonoBehaviour
             ShuffleWires();
             StartNextTurn(turnCount);
             players[playerSelected].mode = PlayerManager.Mode.ChoosePlayer;
-            SendAllPlayerData();
+            SendAllPlayerData(false);
             yield return null;
         }
 
