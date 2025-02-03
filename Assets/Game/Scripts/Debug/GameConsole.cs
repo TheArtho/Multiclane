@@ -154,7 +154,7 @@ public class GameConsole : MonoBehaviour
 
     // Commande : Nettoyer la console
     [ConsoleCommand("clear", "Clears the console.")]
-    private void Clear()
+    public void Clear()
     {
         outPutText.text = string.Empty;
     }

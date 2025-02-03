@@ -141,6 +141,11 @@ public class MatchManager : MonoBehaviour
         playerManagerList = new List<PlayerManager>(GameManager.Main.networkServer.playerObjects.Values);
         playerIdList = new List<ulong>(GameManager.Main.networkServer.playerObjects.Keys);
         
+        foreach (var id in playerIdList)
+        {
+            Debug.Log($"Id {id}");
+        }
+        
         numberPlayers = playerManagerList.Count;
         
         /*
@@ -181,7 +186,12 @@ public class MatchManager : MonoBehaviour
         players[playerSelected].mode = PlayerManager.Mode.ChoosePlayer;
         SendAllPlayerData(false);
         
-        StartCoroutine(GameLoop());
+        StartCoroutine(nameof(GameLoop));
+    }
+
+    public void StopGame()
+    {
+        StopCoroutine(nameof(GameLoop));
     }
     
     private IEnumerator GameLoop()
@@ -511,7 +521,7 @@ public class MatchManager : MonoBehaviour
         {
             PlayerData newPlayer = new PlayerData
             {
-                id = (int) playerIdList[i],
+                id = i,
                 name = GameManager.Main.networkServer.playerNames[playerIdList[i]],
                 role = AllRoles[i],
                 wires = SetPlayerWires(i, wirePerPlayer),

@@ -14,12 +14,6 @@ public class CameraRaycastController : MonoBehaviour
     private OutlineHover lastHoveredObject;
     private Vector3 targetPosition;
 
-    private void Start()
-    {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
-
     void Update()
     {
         if (!mainCamera)
@@ -56,7 +50,7 @@ public class CameraRaycastController : MonoBehaviour
                     lastHoveredObject = hoveredObject;
                 }
 
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0) && !GameManager.Main.pauseMenu.gameObject.activeSelf)
                 {
                     try
                     {

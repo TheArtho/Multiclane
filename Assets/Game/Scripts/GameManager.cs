@@ -17,9 +17,11 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI roleInfo;
     public TextMeshProUGUI playerNameInfo;
     public TextMeshProUGUI targetNameInfo;
-    
+
+    public MatchManager matchManager;
     public NetworkServer networkServer;
     public ConnectionPage connectionPage;
+    public PauseMenu pauseMenu;
 
     public Material NeutralWireMaterial;
     public Material GreenWireMaterial;

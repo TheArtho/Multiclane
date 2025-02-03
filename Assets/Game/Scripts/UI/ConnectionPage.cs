@@ -37,12 +37,14 @@ public class ConnectionPage : MonoBehaviour
         };
         NetworkManager.Singleton.OnClientDisconnectCallback += (clientId) =>
         {
+            /*
             Debug.Log($"[OnClientDisconnectCallback] Client {clientId} disconnected.");
             if (NetworkManager.Singleton.IsConnectedClient)
             {
                 NetworkManager.Singleton.Shutdown();
             }
             QuitGame();
+            */
         };
 
         username.text = PlayerPrefs.GetString("username");
@@ -56,7 +58,9 @@ public class ConnectionPage : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         ShowMenu();
+        GameConsole.Main.Clear();
         GameConsole.Main.ToggleConsole(false);
+        GameManager.Main.pauseMenu.gameObject.SetActive(false);
     }
 
     public void ShowMenuPage()

@@ -118,6 +118,13 @@ public class NetworkServer : NetworkBehaviour
 
             playerObjects.Remove(clientId);
             GameConsole.Print($"{playerNames[clientId]} left the game.");
+            
+            int index = 0;
+            foreach (var keyValuePair in playerObjects)
+            {
+                keyValuePair.Value.PlacePlayerClientRpc(index, playerObjects.Count, GameManager.Main.tableCenter.position);
+                index++;
+            }
         }
     }
 }

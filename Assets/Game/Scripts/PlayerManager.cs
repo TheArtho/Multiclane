@@ -190,6 +190,14 @@ public class PlayerManager : NetworkBehaviour
         }
     }
 
+    public override void OnNetworkDespawn()
+    {
+        if (IsOwner)
+        {
+            GameManager.Main.connectionPage.QuitGame();
+        }
+    }
+
     private void ReceivePlayerData(PlayerNetworkData data)
     {
         // Code Owner only
